@@ -12,6 +12,8 @@ The file can include information such as:
 
 ## What is .claude directory ?
 The .claude directory is a folder used to store configuration and support files for Claude AI tools when working in a project.
+The .claude directory helps organize all AI-related settings and keeps them separate from the main application code.
+
 ```bash
 ![alt text](image.png)
 ```
