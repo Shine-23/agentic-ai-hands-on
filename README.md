@@ -12,6 +12,4 @@ The file can include information such as:
 
 ## What is .claude directory ?
 The .claude directory is a folder used to store configuration and support files for Claude AI tools when working in a project.
-```bash
 ![alt text](image.png)
-```
