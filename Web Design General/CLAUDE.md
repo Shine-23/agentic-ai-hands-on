@@ -16,7 +16,8 @@ When the user provides a reference image (screenshot) and optionally some CSS cl
    - Image/icon sizing and placement
 4. **Fix** every mismatch found. Edit the HTML/Tailwind code.
 5. **Re-screenshot** and compare again.
-6. **Repeat** steps 3–5 until the result is within ~2–3px of the reference everywhere.
+6. **Save** all screenshot.
+7. **Repeat** steps 3–5 until the result is within ~2–3px of the reference everywhere.
 
 Do NOT stop after one pass. Always do at least 2 comparison rounds. Only stop when the user says so or when no visible differences remain.
 
