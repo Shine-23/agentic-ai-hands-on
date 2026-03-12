@@ -22,3 +22,26 @@ Claude can use instructions from three different CLAUDE.md layers that merge tog
 - Project Layer (.claude/CLAUDE.md): Project-specific instructions stored inside the repository.
 
 - System / Enterprise Layer: Organization-level rules managed by the system or company.
+
+## Auto-Memory
+
+Claude has an auto-memory feature that allows it to remember information across sessions.
+
+- Memory is stored in: `~/.claude/projects/<project-hash>/memory/MEMORY.md`
+- Claude reads the first part of this file when a new session starts.
+- During a session, it can store useful notes such as patterns, debugging insights, and preferences.
+- Additional topic files (e.g., `debugging.md`, `patterns.md`) can be linked from MEMORY.md.
+
+This memory is separate from `CLAUDE.md`, which contains instructions.
+
+## Agents
+
+Agents are AI assistants designed to perform specific tasks automatically.
+They can understand instructions, use tools, and execute multiple steps to complete a task.
+
+An agent can:
+- read and analyze files
+- generate or modify code
+- run commands
+- automate workflows
+
