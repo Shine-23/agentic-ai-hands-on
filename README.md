@@ -11,6 +11,14 @@ The file can include information such as:
 - instructions on how the AI should assist with the codebase
 
 ## What is .claude directory ?
+
 The .claude directory is a folder used to store configuration and support files for Claude AI tools when working in a project.
 The .claude directory helps organize all AI-related settings and keeps them separate from the main application code.
 
+Claude can use instructions from three different CLAUDE.md layers that merge together.
+
+- Personal Layer (~/.claude/CLAUDE.md): User’s global preferences that apply to all projects.
+
+- Project Layer (.claude/CLAUDE.md): Project-specific instructions stored inside the repository.
+
+- System / Enterprise Layer: Organization-level rules managed by the system or company.

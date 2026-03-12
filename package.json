@@ -1,0 +1,10 @@
+{
+  "name": "agentic-ai-hands-on",
+  "version": "1.0.0",
+  "scripts": {
+    "screenshot": "node screenshot.js"
+  },
+  "devDependencies": {
+    "puppeteer": "^24.15.0"
+  }
+}
