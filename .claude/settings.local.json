@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__chrome-devtools__list_pages",
+      "mcp__chrome-devtools__navigate_page",
+      "mcp__chrome-devtools__take_screenshot",
+      "mcp__chrome-devtools__click",
+      "mcp__chrome-devtools__take_snapshot",
+      "Bash(python3 -c \"\nimport json\nwith open\\(r'C:\\\\Users\\\\priya\\\\.claude\\\\projects\\\\C--Users-priya-Desktop-2024-2025-agentic-ai-hands-on\\\\8ec3a74f-0a33-4232-a1ec-0c0d93f0c34d\\\\tool-results\\\\mcp-chrome-devtools-take_snapshot-1773361036643.txt', encoding='utf-8'\\) as f:\n    data = json.load\\(f\\)\ntext = data[0]['text']\nidx = text.find\\('Accept'\\)\nprint\\(repr\\(text[max\\(0,idx-300\\):idx+300]\\)\\)\n\")",
+      "mcp__chrome-devtools__evaluate_script"
+    ]
+  }
+}

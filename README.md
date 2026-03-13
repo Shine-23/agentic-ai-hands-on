@@ -45,3 +45,14 @@ An agent can:
 - run commands
 - automate workflows
 
+## Skills (Custom Slash Commands)
+
+Skills are custom slash commands that extend Claude’s capabilities.
+They allow you to create reusable commands that perform specific tasks automatically.
+Where they are stored:
+
+- `.claude/skills/<name>/SKILL.md` → project-level skills
+
+- `~/.claude/skills/<name>/SKILL.md` → personal skills
+
+- `.claude/commands/<name>.md` → legacy command format
