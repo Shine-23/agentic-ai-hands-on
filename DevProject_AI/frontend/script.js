@@ -1,17 +1,18 @@
 const API_BASE = "http://localhost:8000";
 let allExpanded = false;
 let lastPlan = null;
+let lastTickets = [];
 
 const SECTIONS = [
-  { key: "clarifying_questions",   label: "Clarifying Questions", emoji: "❓" },
-  { key: "assumptions",            label: "Assumptions",          emoji: "💡" },
-  { key: "suggested_mvp_scope",    label: "MVP Scope",            emoji: "🎯" },
-  { key: "proposed_architecture",  label: "Architecture",         emoji: "🏗️" },
-  { key: "data_model_entities",    label: "Data Model",           emoji: "🗄️" },
-  { key: "api_draft",              label: "API Draft",            emoji: "🔌" },
-  { key: "implementation_plan",    label: "Implementation Plan",  emoji: "📋" },
-  { key: "risks_and_dependencies", label: "Risks & Dependencies", emoji: "⚠️" },
-  { key: "recommended_next_steps", label: "Next Steps",           emoji: "➡️" },
+  { key: "clarifying_questions",   label: "Clarifying Questions" },
+  { key: "assumptions",            label: "Assumptions"          },
+  { key: "suggested_mvp_scope",    label: "MVP Scope"            },
+  { key: "proposed_architecture",  label: "Architecture"         },
+  { key: "data_model_entities",    label: "Data Model"           },
+  { key: "api_draft",              label: "API Draft"            },
+  { key: "implementation_plan",    label: "Implementation Plan"  },
+  { key: "risks_and_dependencies", label: "Risks & Dependencies" },
+  { key: "recommended_next_steps", label: "Next Steps"           },
 ];
 
 // ── API STATUS CHECK ──
@@ -97,7 +98,7 @@ function renderPlan(plan) {
   const container = document.getElementById("planSections");
   container.innerHTML = "";
 
-  SECTIONS.forEach(({ key, label, emoji }) => {
+  SECTIONS.forEach(({ key, label }) => {
     const items = plan[key];
     if (!items || !items.length) return;
 
@@ -109,7 +110,6 @@ function renderPlan(plan) {
     header.className = "plan-section-header";
     header.innerHTML = `
       <div class="plan-section-title">
-        <span class="section-emoji">${emoji}</span>
         <span class="section-label">${label}</span>
         <span class="section-count">${items.length}</span>
       </div>
@@ -118,7 +118,7 @@ function renderPlan(plan) {
 
     const body = document.createElement("div");
     body.className = "plan-section-body";
-    body.innerHTML = `<ul>${items.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+    body.innerHTML = `<ul>${items.map(item => `<li>${renderText(item)}</li>`).join("")}</ul>`;
 
     header.addEventListener("click", () => {
       header.classList.toggle("open");
@@ -163,13 +163,256 @@ function copyPlan() {
   navigator.clipboard.writeText(lines.join("\n")).then(() => showToast("Copied to clipboard"));
 }
 
+// ── GENERATE TASKS ──
+async function generateTasks() {
+  if (!lastPlan) return;
+
+  const btn = document.getElementById("generateTasksBtn");
+  btn.disabled = true;
+  btn.textContent = "Generating tickets…";
+
+  document.getElementById("taskSpinner").classList.add("visible");
+  document.getElementById("taskOutput").classList.remove("visible");
+
+  try {
+    const res = await fetch(`${API_BASE}/plan/generate-tasks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(lastPlan),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    lastTickets = data.tickets || [];
+    renderTickets(lastTickets);
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    document.getElementById("taskSpinner").classList.remove("visible");
+    btn.disabled = false;
+    btn.textContent = "Generate Tasks from this Plan";
+  }
+}
+
+function renderTickets(tickets) {
+  const container = document.getElementById("ticketList");
+  container.innerHTML = "";
+
+  document.getElementById("ticketCount").textContent = `${tickets.length} tickets`;
+
+  // Group by phase
+  const phases = {};
+  tickets.forEach(t => {
+    if (!phases[t.phase]) phases[t.phase] = [];
+    phases[t.phase].push(t);
+  });
+
+  Object.entries(phases).forEach(([phase, phaseTickets]) => {
+    const phaseEl = document.createElement("div");
+    phaseEl.className = "phase-header";
+    phaseEl.textContent = phase;
+    container.appendChild(phaseEl);
+
+    phaseTickets.forEach(ticket => {
+      const card = document.createElement("div");
+      card.className = "ticket-card";
+
+      const header = document.createElement("div");
+      header.className = "ticket-header";
+      header.innerHTML = `
+        <div class="ticket-header-left">
+          <span class="ticket-id">${escapeHtml(ticket.id)}</span>
+          <span class="ticket-title">${escapeHtml(ticket.title)}</span>
+        </div>
+        <div class="ticket-meta">
+          <span class="priority-badge priority-${ticket.priority}">${ticket.priority}</span>
+          ${ticket.estimate ? `<span class="estimate-badge">${ticket.estimate} SP</span>` : ""}
+          <span class="ticket-arrow">▶</span>
+        </div>
+      `;
+
+      const depsHtml = ticket.dependencies && ticket.dependencies.length
+        ? `<div class="ticket-section-label">Dependencies</div>
+           <div class="ticket-deps">Requires: ${ticket.dependencies.map(d => escapeHtml(d)).join(", ")}</div>`
+        : "";
+
+      const labelsHtml = ticket.labels && ticket.labels.length
+        ? `<div class="ticket-section-label">Labels</div>
+           <div class="ticket-labels">${ticket.labels.map(l => `<span class="ticket-label">${escapeHtml(l)}</span>`).join("")}</div>`
+        : "";
+
+      const body = document.createElement("div");
+      body.className = "ticket-body";
+      body.innerHTML = `
+        <div class="ticket-description">${renderText(ticket.description)}</div>
+        <div class="ticket-section-label">Acceptance Criteria</div>
+        <ul class="ticket-criteria">
+          ${ticket.acceptance_criteria.map(c => `<li>${renderText(c)}</li>`).join("")}
+        </ul>
+        ${depsHtml}
+        ${labelsHtml}
+      `;
+
+      header.addEventListener("click", () => {
+        header.classList.toggle("open");
+        body.classList.toggle("open");
+      });
+
+      card.appendChild(header);
+      card.appendChild(body);
+      container.appendChild(card);
+    });
+  });
+
+  document.getElementById("taskOutput").classList.add("visible");
+  document.getElementById("taskOutput").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// ── COPY TICKETS ──
+function copyTickets() {
+  if (!lastTickets || !lastTickets.length) return;
+  const lines = ["# Development Tickets\n"];
+  let currentPhase = "";
+  lastTickets.forEach(t => {
+    if (t.phase !== currentPhase) {
+      currentPhase = t.phase;
+      lines.push(`\n## ${t.phase}`);
+    }
+    lines.push(`\n### ${t.id} — ${t.title}`);
+    lines.push(`**Priority:** ${t.priority}${t.estimate ? ` | **Estimate:** ${t.estimate} SP` : ""}`);
+    lines.push(`\n${t.description}`);
+    lines.push(`\n**Acceptance Criteria:**`);
+    t.acceptance_criteria.forEach(c => lines.push(`- [ ] ${c}`));
+    if (t.labels && t.labels.length) lines.push(`\n**Labels:** ${t.labels.join(", ")}`);
+    if (t.dependencies && t.dependencies.length) lines.push(`**Depends on:** ${t.dependencies.join(", ")}`);
+  });
+  navigator.clipboard.writeText(lines.join("\n")).then(() => showToast("Tickets copied to clipboard"));
+}
+
+// ── SAVE TICKETS ──
+async function saveTickets() {
+  if (!lastPlan || !lastTickets.length) return;
+  const btn = document.getElementById("saveTicketsBtn");
+  btn.disabled = true;
+  btn.textContent = "Saving…";
+  try {
+    const res = await fetch(`${API_BASE}/history/save`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan: lastPlan, tickets: lastTickets }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    btn.textContent = "✓ Saved";
+    showToast("Saved to history");
+    loadHistory();
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = "Save";
+    showToast("Save failed: " + err.message);
+  }
+}
+
+// ── HISTORY ──
+
+async function loadHistory() {
+  const list = document.getElementById("historyList");
+  list.innerHTML = '<div class="history-empty">Loading...</div>';
+  try {
+    const res = await fetch(`${API_BASE}/history`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const plans = await res.json();
+    if (!plans.length) {
+      list.innerHTML = '<div class="history-empty">No saved plans yet.</div>';
+      return;
+    }
+    list.innerHTML = "";
+    plans.forEach(p => {
+      const row = document.createElement("div");
+      row.className = "history-row";
+      row.innerHTML = `
+        <div class="history-row-info">
+          <div class="history-row-title">${escapeHtml(p.title)}</div>
+          <div class="history-row-date">${new Date(p.created_at).toLocaleString()}</div>
+        </div>
+        <div class="history-row-actions">
+          <button class="btn-sm" data-id="${p.id}" data-action="load">Load</button>
+          <button class="btn-sm btn-danger" data-id="${p.id}" data-action="delete">Delete</button>
+        </div>
+      `;
+      row.querySelectorAll("button[data-action]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = Number(btn.dataset.id);
+          if (btn.dataset.action === "load") loadPlan(id);
+          else deletePlan(id);
+        });
+      });
+      list.appendChild(row);
+    });
+  } catch {
+    list.innerHTML = '<div class="history-empty">Could not load history.</div>';
+  }
+}
+
+async function loadPlan(id) {
+  try {
+    const res = await fetch(`${API_BASE}/history/${id}`);
+    if (!res.ok) throw new Error("Not found");
+    const data = await res.json();
+
+    lastPlan = data.plan;
+    renderPlan(lastPlan);
+
+    if (data.tickets && data.tickets.length) {
+      lastTickets = data.tickets;
+      renderTickets(lastTickets);
+    } else {
+      lastTickets = [];
+      document.getElementById("taskOutput").classList.remove("visible");
+    }
+
+    document.querySelector(".welcome").style.display = "none";
+    document.querySelector(".card").style.display = "none";
+
+    showToast("Plan loaded");
+  } catch {
+    showToast("Failed to load plan");
+  }
+}
+
+async function deletePlan(id) {
+  if (!confirm("Delete this plan? This cannot be undone.")) return;
+  try {
+    const res = await fetch(`${API_BASE}/history/${id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error("Failed");
+    showToast("Deleted");
+    loadHistory();
+  } catch {
+    showToast("Delete failed");
+  }
+}
+
 // ── NEW PLAN ──
 function resetForm() {
   document.getElementById("planOutput").classList.remove("visible");
+  document.getElementById("taskOutput").classList.remove("visible");
   document.getElementById("requirement").value = "";
-  document.getElementById("charCount").textContent = "0 chars";
+  document.getElementById("charCount").textContent = "0 / 4000";
+  document.getElementById("directory").value = "";
+  document.getElementById("sources").value = "";
+  document.getElementById("commands").value = "";
+  updateActivePills();
+  document.querySelector(".welcome").style.display = "";
+  document.querySelector(".card").style.display = "";
   window.scrollTo({ top: 0, behavior: "smooth" });
   lastPlan = null;
+  lastTickets = [];
   allExpanded = false;
 }
 
@@ -204,11 +447,18 @@ function escapeHtml(str) {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+function renderText(str) {
+  return escapeHtml(str)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`(.+?)`/g, "<code>$1</code>");
+}
+
 // ── INIT ──
 checkApiStatus();
+loadHistory();
 
 document.getElementById("requirement").addEventListener("input", function () {
-  document.getElementById("charCount").textContent = this.value.length + " chars";
+  document.getElementById("charCount").textContent = `${this.value.length} / 4000`;
   updateActivePills();
 });
 

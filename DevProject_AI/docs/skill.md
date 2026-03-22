@@ -59,7 +59,7 @@ Split into:
 Propose architecture using the default stack:
 | Layer | Default |
 |-------|---------|
-| Frontend | Lovable or lightweight UI |
+| Frontend | Plain HTML / CSS / JS |
 | Backend | FastAPI (Python) |
 | AI | Claude API |
 | Database | PostgreSQL |
@@ -89,7 +89,9 @@ Identify:
 - Auth/security concerns
 - Integration risks
 - Scaling concerns
-- Deployment risks
+- Deployment risks (Docker, Railway-specific)
+- Database migration risks (schema changes, data loss, rollback strategy)
+- Dependency version conflicts or breaking changes
 
 ### Step 9 — Final Output
 Return the structured plan in 10 sections:
@@ -103,6 +105,8 @@ Return the structured plan in 10 sections:
 8. Implementation Plan
 9. Risks and Dependencies
 10. Recommended Next Steps
+
+Output must be **valid JSON only** — no prose, no markdown fences, no commentary before or after.
 
 ---
 
@@ -157,7 +161,7 @@ with auth, projects, issue intake, and Slack alerts
 - No rate limiting on issue creation in MVP
 
 **Next Steps:**
-- Set up PostgreSQL and run Alembic migrations
+- Set up PostgreSQL and create tables via SQLAlchemy
 - Implement auth routes
 - Build issue CRUD endpoints
 - Integrate Slack webhook
@@ -169,4 +173,5 @@ with auth, projects, issue intake, and Slack alerts
 - Be specific, not vague
 - Anchor recommendations to the project stack
 - Never invent repo-specific details unless codebase context is provided
+- When MCP context is provided, the plan must be grounded in that codebase — not in assumed project identity
 - Keep output clean and easy to convert into tickets or GitHub issues

@@ -8,119 +8,165 @@
 </head>
 <body>
 
-<!-- HEADER -->
-<header>
-  <div class="header-left">
-    <h1>DevProject <span>AI</span></h1>
-    <span class="header-badge">Engineering Planner</span>
-  </div>
-  <div class="header-right">
-    <div class="api-status">
-      <div class="status-dot" id="statusDot"></div>
-      <span id="statusText">Checking...</span>
-    </div>
-  </div>
-</header>
+<div class="layout">
 
-<div class="container">
-
-  <!-- FORM CARD -->
-  <div class="card">
-
-    <form id="planForm">
-      <label for="requirement">Requirement *</label>
-      <div class="field-wrap">
-        <textarea id="requirement" placeholder="Describe what you want to build or change, e.g. Add JWT authentication to this FastAPI project" required></textarea>
-        <span class="char-count" id="charCount">0 chars</span>
-      </div>
-
-      <!-- Context Tools -->
-      <div class="context-toggle" id="contextToggle">
-        <div class="context-toggle-left">
-          <span class="context-toggle-icon">⚙️</span>
-          <span>Context Tools</span>
-          <span style="color:#475569;font-size:0.75rem;">(optional)</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div class="active-tools" id="activePills"></div>
-          <span class="context-chevron">▶</span>
-        </div>
-      </div>
-
-      <div class="collapsible" id="contextPanel">
-        <div class="tool-grid">
-
-          <div class="tool-row">
-            <div class="tool-row-header">
-              <span class="tool-icon">📁</span>
-              <span class="tool-name">Repo Directory or GitHub URL</span>
-            </div>
-            <input type="text" id="directory" placeholder="https://github.com/user/repo  or  C:\my-project" />
-            <p class="hint">Scans .py .md .json .yaml .toml files (up to 20). Supports public GitHub repos.</p>
-          </div>
-
-          <div class="tool-row">
-            <div class="tool-row-header">
-              <span class="tool-icon">📄</span>
-              <span class="tool-name">Doc Sources</span>
-            </div>
-            <input type="text" id="sources" placeholder="https://docs.example.com, /local/file.md" />
-            <p class="hint">Comma-separated URLs or local file paths fetched as documentation context.</p>
-          </div>
-
-          <div class="tool-row">
-            <div class="tool-row-header">
-              <span class="tool-icon">💻</span>
-              <span class="tool-name">Shell Commands</span>
-            </div>
-            <input type="text" id="commands" placeholder="pip list, cat requirements.txt" />
-            <p class="hint">Comma-separated shell commands whose output is passed as context.</p>
-          </div>
-
-        </div>
-      </div>
-
-      <button type="submit" id="submitBtn">Generate Engineering Plan</button>
-    </form>
-  </div>
-
-  <!-- SPINNER -->
-  <div class="spinner" id="spinner">
-    <div class="spinner-ring"></div>
-    <div class="spinner-text">Generating your engineering plan...</div>
-    <div class="spinner-sub" id="spinnerSub"></div>
-  </div>
-
-  <!-- ERROR -->
-  <div class="error-box" id="errorBox" style="display:none;">
-    <span class="error-icon">⚠️</span>
-    <span id="errorText"></span>
-  </div>
-
-  <!-- PLAN OUTPUT -->
-  <div class="plan-output" id="planOutput">
-
-    <div class="output-header">
-      <div class="output-header-left">
-        <h2>Engineering Plan</h2>
-        <span class="badge-complete">Complete</span>
-      </div>
-      <div class="output-actions">
-        <button class="btn-sm" id="expandAllBtn" onclick="toggleAll()">⊞ Expand All</button>
-        <button class="btn-sm" id="copyBtn" onclick="copyPlan()">⎘ Copy</button>
+  <!-- LEFT SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="sidebar-brand">
+        <h1>DevProject <span>AI</span></h1>
+        <span class="header-badge">Planner</span>
       </div>
     </div>
 
-    <div class="summary-box">
-      <div class="summary-label">Summary</div>
-      <div id="summaryBox"></div>
+    <div class="sidebar-nav">
+      <button class="sidebar-new-btn" onclick="resetForm()">
+        <span class="sidebar-new-icon">+</span> New Plan
+      </button>
     </div>
 
-    <div id="planSections"></div>
+    <div class="sidebar-section-label">Saved Plans</div>
 
-    <button class="new-plan-btn" onclick="resetForm()">+ New Plan</button>
+    <div class="sidebar-body">
+      <div id="historyList" class="history-list">
+        <div class="history-empty">Your plans will show up here</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <div class="api-status">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Checking...</span>
+      </div>
+    </div>
+
+    <div class="container">
+
+      <div class="welcome">
+        <h2 class="welcome-title">What are you building?</h2>
+        <p class="welcome-sub">Describe your requirement and I will generate a complete engineering plan.</p>
+      </div>
+
+      <!-- FORM CARD -->
+      <div class="card">
+        <form id="planForm">
+          <label for="requirement" class="section-title">Requirement</label>
+          <div class="field-wrap">
+            <textarea id="requirement" placeholder="e.g. Add JWT authentication to this FastAPI project" maxlength="4000" required></textarea>
+            <span class="char-count" id="charCount">0 / 4000</span>
+          </div>
+
+          <!-- Context Tools -->
+          <div class="context-toggle" id="contextToggle">
+            <div class="context-toggle-left">
+              <span class="context-toggle-icon"></span>
+              <span>Context Tools</span>
+              <span class="context-optional">(optional)</span>
+            </div>
+            <div class="context-toggle-right">
+              <div class="active-tools" id="activePills"></div>
+              <span class="context-chevron">▶</span>
+            </div>
+          </div>
+
+          <div class="collapsible" id="contextPanel">
+            <div class="tool-grid">
+
+              <div class="tool-row">
+                <div class="tool-row-header">
+                  <span class="tool-name">Repo Directory or GitHub URL</span>
+                </div>
+                <input type="text" id="directory" placeholder="https://github.com/user/repo  or  C:\my-project" />
+                <p class="hint">Scans .py .md .txt .json .yaml .yml .toml files (up to 20). Supports public GitHub repos.</p>
+              </div>
+
+              <div class="tool-row">
+                <div class="tool-row-header">
+                  <span class="tool-name">Doc Sources</span>
+                </div>
+                <input type="text" id="sources" placeholder="https://docs.example.com, /local/file.md" />
+                <p class="hint">Comma-separated URLs or local file paths fetched as documentation context.</p>
+              </div>
+
+              <div class="tool-row">
+                <div class="tool-row-header">
+                  <span class="tool-name">Shell Commands</span>
+                </div>
+                <input type="text" id="commands" placeholder="pip list, python --version" />
+                <p class="hint">Comma-separated shell commands whose output is passed as context.</p>
+              </div>
+
+            </div>
+          </div>
+
+          <button type="submit" id="submitBtn">Generate Plan</button>
+        </form>
+      </div>
+
+      <!-- SPINNER -->
+      <div class="spinner" id="spinner">
+        <div class="spinner-ring"></div>
+        <div class="spinner-text">Generating your engineering plan...</div>
+        <div class="spinner-sub" id="spinnerSub"></div>
+      </div>
+
+      <!-- ERROR -->
+      <div class="error-box" id="errorBox" style="display:none;">
+        <span class="error-icon"></span>
+        <span id="errorText"></span>
+      </div>
+
+      <!-- PLAN OUTPUT -->
+      <div class="plan-output" id="planOutput">
+        <div class="output-header">
+          <div class="output-header-left">
+            <h2>Engineering Plan</h2>
+            <span class="badge-complete">Complete</span>
+          </div>
+          <div class="output-actions">
+            <button class="btn-sm" id="expandAllBtn" onclick="toggleAll()">⊞ Expand All</button>
+            <button class="btn-sm" id="copyBtn" onclick="copyPlan()">⎘ Copy</button>
+          </div>
+        </div>
+
+        <div class="summary-box">
+          <div class="summary-label">Summary</div>
+          <div id="summaryBox"></div>
+        </div>
+
+        <div id="planSections"></div>
+
+        <button class="generate-tasks-btn" id="generateTasksBtn" onclick="generateTasks()">Generate Tasks from this Plan</button>
+      </div>
+
+      <!-- TASK SPINNER -->
+      <div class="spinner" id="taskSpinner">
+        <div class="spinner-ring"></div>
+        <div class="spinner-text">Generating development tickets...</div>
+      </div>
+
+      <!-- TASK OUTPUT -->
+      <div class="task-output" id="taskOutput">
+        <div class="output-header">
+          <div class="output-header-left">
+            <h2>Development Tickets</h2>
+            <span class="badge-complete" id="ticketCount"></span>
+          </div>
+          <div class="output-actions">
+            <button class="btn-sm" onclick="copyTickets()">⎘ Copy Tickets</button>
+            <button class="btn-sm btn-save" id="saveTicketsBtn" onclick="saveTickets()">Save</button>
+          </div>
+        </div>
+        <div id="ticketList"></div>
+      </div>
+
+    </div>
   </div>
-
 </div>
 
 <!-- TOAST -->

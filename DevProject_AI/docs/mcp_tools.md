@@ -5,6 +5,10 @@ The 3 MCP tools enrich the AI planning request with real context from your proje
 Instead of generating a generic plan, Claude receives your actual code, docs, and environment
 before producing the engineering plan.
 
+> **Important:** All three tools are **fail-fast** — if a tool fails (bad URL, clone error,
+> blocked command), the request returns a `400` error immediately. This ensures you always know
+> when your context was not applied, rather than receiving a plan based on no context at all.
+
 ---
 
 ## 1. Repo Tool (`repo_tool.py`)
@@ -12,7 +16,7 @@ before producing the engineering plan.
 
 **Input:**
 ```
-directory: "https://github.com/Shine-23/agentic-ai-hands-on"
+directory: "https://github.com/user/repo"
 ```
 or
 ```
@@ -20,9 +24,12 @@ directory: "C:\my-project"
 ```
 
 **What it does internally:**
-- Clones the repo (or reads local folder)
-- Scans `.py`, `.md`, `.json`, `.yaml`, `.toml` files (max 20)
-- Passes file contents to Claude as context
+- For GitHub URLs: clones the repo with `git clone --depth=1` into a temp directory
+- For local paths: reads the directory directly
+- Scans `.py`, `.md`, `.txt`, `.json`, `.yaml`, `.yml`, `.toml` files (max 20, max 10 KB each)
+- Skips junk directories: `.git`, `node_modules`, `__pycache__`, `venv`, `.venv`, `dist`, `build`, etc.
+- Cleans up temp clone after scanning
+- Raises an error if no matching files are found
 
 **Output fed to Claude:**
 ```
@@ -44,11 +51,16 @@ from fastapi import FastAPI...
 ```
 sources: "https://fastapi.tiangolo.com"
 ```
+or a local file path:
+```
+sources: "/path/to/spec.md"
+```
 
 **What it does internally:**
-- Fetches the URL (or reads a local file)
-- Strips HTML, extracts plain text
-- Passes it to Claude as context
+- For URLs: fetches the page and strips HTML tags (skipping `<script>`, `<style>`, `<head>`)
+- For local files: reads the file directly
+- Reads in 4 KB chunks up to 10 KB — never loads large pages fully into memory
+- Raises an error if the page is empty or JavaScript-rendered (no extractable text)
 
 **Output fed to Claude:**
 ```
@@ -70,17 +82,19 @@ commands: "pip list"
 ```
 
 **What it does internally:**
-- Runs the shell command
-- Captures stdout/stderr
-- Passes output to Claude as context
+- Runs the shell command with a 10-second timeout
+- Captures both stdout and stderr — stderr is included with a `[stderr]` label
+- Prefixes output with `[exit code N]` when the command fails (non-zero exit)
+- **Blocks dangerous commands** — `rm -rf`, `del /f`, `format`, `shutdown`, `curl`, `wget`,
+  and other destructive patterns are rejected before execution
 
 **Output fed to Claude:**
 ```
 [TOOL] pip list
-fastapi        0.104.1
-uvicorn        0.24.0
-anthropic      0.23.0
-pydantic       2.5.0
+fastapi        0.135.1
+uvicorn        0.42.0
+anthropic      0.86.0
+pydantic       2.12.5
 ```
 
 **Effect on plan:** Claude won't tell you to install FastAPI — it already knows you have it. It will suggest only what's missing.
@@ -92,7 +106,7 @@ pydantic       2.5.0
 ```json
 {
   "requirement": "Add JWT authentication",
-  "directory": "https://github.com/Shine-23/agentic-ai-hands-on",
+  "directory": "https://github.com/user/repo",
   "sources": ["https://fastapi.tiangolo.com"],
   "commands": ["pip list"]
 }

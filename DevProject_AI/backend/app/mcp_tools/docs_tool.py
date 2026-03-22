@@ -9,7 +9,8 @@ from html.parser import HTMLParser
 
 from app.schemas.plan import MCPContext, MCPSourceType
 
-MAX_CONTENT_LENGTH = 10_000  # truncate at 10 KB
+MAX_CONTENT_BYTES = 10_000   # stop reading after 10 KB
+FETCH_TIMEOUT     = 10       # seconds before URL fetch times out
 
 
 class _HTMLTextExtractor(HTMLParser):
@@ -17,18 +18,18 @@ class _HTMLTextExtractor(HTMLParser):
         super().__init__()
         self._parts = []
         self._skip_tags = {"script", "style", "head"}
-        self._current_skip = None
+        self._skip_stack = []   # stack so nested skip tags work correctly
 
     def handle_starttag(self, tag, attrs):
         if tag in self._skip_tags:
-            self._current_skip = tag
+            self._skip_stack.append(tag)
 
     def handle_endtag(self, tag):
-        if tag == self._current_skip:
-            self._current_skip = None
+        if self._skip_stack and tag == self._skip_stack[-1]:
+            self._skip_stack.pop()
 
     def handle_data(self, data):
-        if self._current_skip is None:
+        if not self._skip_stack:
             text = data.strip()
             if text:
                 self._parts.append(text)
@@ -40,20 +41,51 @@ class _HTMLTextExtractor(HTMLParser):
 def _fetch_url(url: str) -> str:
     try:
         req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urlopen(req, timeout=10) as response:
-            raw = response.read().decode("utf-8", errors="ignore")
-        parser = _HTMLTextExtractor()
-        parser.feed(raw)
-        return parser.get_text()[:MAX_CONTENT_LENGTH]
+        with urlopen(req, timeout=FETCH_TIMEOUT) as response:
+            # Read in chunks to avoid loading huge pages into memory
+            chunks = []
+            total = 0
+            while total < MAX_CONTENT_BYTES:
+                chunk = response.read(4096)
+                if not chunk:
+                    break
+                chunks.append(chunk.decode("utf-8", errors="ignore"))
+                total += len(chunk)
+            raw = "".join(chunks)
     except URLError as e:
         raise ValueError(f"Failed to fetch URL '{url}': {e}")
+
+    parser = _HTMLTextExtractor()
+    parser.feed(raw)
+    text = parser.get_text()
+
+    if not text.strip():
+        raise ValueError(f"No readable text extracted from '{url}'. The page may be JavaScript-rendered.")
+
+    return text[:MAX_CONTENT_BYTES]
 
 
 def _read_file(path: str) -> str:
     file = Path(path).resolve()
     if not file.exists() or not file.is_file():
         raise ValueError(f"File not found: {path}")
-    return file.read_text(encoding="utf-8", errors="ignore")[:MAX_CONTENT_LENGTH]
+
+    # Read in chunks to avoid loading huge files into memory
+    chunks = []
+    total = 0
+    with file.open(encoding="utf-8", errors="ignore") as f:
+        while total < MAX_CONTENT_BYTES:
+            chunk = f.read(4096)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            total += len(chunk)
+
+    content = "".join(chunks)
+    if not content.strip():
+        raise ValueError(f"File is empty: {path}")
+
+    return content
 
 
 def fetch_docs_context(source: str) -> MCPContext:

@@ -2,7 +2,7 @@
 
 ## What is the Agent?
 The Engineering Planning Agent is the AI brain of DevProject AI.
-It is powered by Claude (claude-sonnet-4-5) and acts as a **senior engineer collaborator**
+It is powered by Claude (claude-sonnet-4-6) and acts as a **senior engineer collaborator**
 that thinks through scope, architecture, risks, and sequencing before implementation starts.
 
 ---
@@ -131,7 +131,7 @@ With MCP context:
 | AI | Claude API |
 | Database | PostgreSQL |
 | Auth | JWT |
-| Frontend | Lovable or lightweight UI |
+| Frontend | Plain HTML / CSS / JS |
 | Deployment | Docker + Railway |
 
 ---
@@ -142,3 +142,4 @@ With MCP context:
 - Identifies ambiguity instead of guessing
 - Outputs structured JSON ready to convert into tickets or docs
 - When MCP context is provided — inspects real code and docs before recommending
+- When repo or doc context is provided — the plan is grounded in that specific codebase, not in any assumed project identity

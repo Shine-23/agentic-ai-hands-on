@@ -31,6 +31,8 @@ DevProject AI fills that gap — acting as a senior engineering collaborator tha
 | Task decomposition | Breaks work into milestones, tasks, and subtasks |
 | Risk review | Surfaces ambiguity, unknowns, and integration risks |
 | Implementation sequencing | Recommends practical build order |
+| Development tickets | Generates structured tickets with acceptance criteria and story points |
+| Plan history | Saves, loads, and deletes plans with their tickets |
 
 ---
 
@@ -39,11 +41,11 @@ Three tools enrich the AI plan with real project context:
 
 | Tool | Purpose |
 |---|---|
-| `repo_tool` | Scans local directory or clones a GitHub repo (supports tree/subdir URLs) |
+| `repo_tool` | Scans a local directory or clones a public GitHub repo |
 | `docs_tool` | Fetches documentation from a URL or local file |
 | `shell_tool` | Runs shell commands and captures output (e.g. `pip list`) |
 
-All three tools feed their output into Claude before the plan is generated.
+All three tools feed their output into Claude before the plan is generated. If any tool fails the request returns a `400` error immediately — context is never silently skipped.
 
 ---
 
@@ -53,11 +55,9 @@ All three tools feed their output into Claude before the plan is generated.
 |---|---|
 | Frontend | HTML / CSS / JS |
 | Backend | FastAPI (Python) |
-| AI layer | Claude API (Anthropic) — claude-sonnet-4-5 |
-| Database | PostgreSQL / SQLite |
-| Auth | JWT / OAuth2 |
-| Containerization | Docker |
-| Deployment | Railway |
+| AI layer | Claude API (Anthropic) — claude-sonnet-4-6 |
+| Database | PostgreSQL |
+| Deployment | Docker + Railway |
 | Env management | python-dotenv |
 
 ---
@@ -67,38 +67,48 @@ All three tools feed their output into Claude before the plan is generated.
 ```
 DevProject_AI/
 ├── .claude/
-│   ├── CLAUDE.md                          # Claude Code instructions
+│   ├── CLAUDE.md                              # Claude Code instructions
 │   ├── skills/
-│   │   └── SKILL.md                       # Agent workflow definition
+│   │   └── SKILL.md                           # Agent workflow definition (9 steps)
 │   └── agents/
-│       └── ENGINEERING_PLANNING_AGENT.md  # Agent role and behavior
+│       ├── ENGINEERING_PLANNING_AGENT.md      # Planner agent role and behavior
+│       └── TASK_GENERATOR_AGENT.md            # Task generator agent role and behavior
 ├── backend/
 │   ├── app/
 │   │   ├── core/
-│   │   │   └── config.py                  # Env loading (ANTHROPIC_API_KEY)
+│   │   │   └── config.py                      # Env loading
 │   │   ├── api/
-│   │   │   └── routes_plan.py             # All /plan/* endpoints
+│   │   │   ├── routes_plan.py                 # /plan/* endpoints
+│   │   │   └── routes_history.py              # /history/* endpoints
 │   │   ├── schemas/
-│   │   │   └── plan.py                    # Pydantic models
+│   │   │   ├── plan.py                        # Plan request/response models
+│   │   │   ├── task.py                        # Ticket models
+│   │   │   └── history.py                     # History models
+│   │   ├── db/
+│   │   │   ├── database.py                    # SQLAlchemy engine and session
+│   │   │   └── models.py                      # PlanRecord, TicketRecord ORM models
 │   │   ├── services/
-│   │   │   ├── claude_service.py          # Claude API interactions
-│   │   │   └── planner_service.py         # Agent orchestration
+│   │   │   ├── claude_service.py              # Claude API interactions
+│   │   │   ├── planner_service.py             # Plan generation logic
+│   │   │   └── task_service.py                # Ticket generation logic
 │   │   ├── mcp_tools/
-│   │   │   ├── repo_tool.py               # Repo / GitHub scanner
-│   │   │   ├── docs_tool.py               # Docs / URL fetcher
-│   │   │   └── shell_tool.py              # Shell command runner
-│   │   └── agent_prompt.py                # Agent system prompt
-│   ├── main.py                            # Entry point + CORS
-│   ├── .env                               # API keys (gitignored)
+│   │   │   ├── repo_tool.py                   # Repo / GitHub scanner
+│   │   │   ├── docs_tool.py                   # Docs / URL fetcher
+│   │   │   └── shell_tool.py                  # Shell command runner
+│   │   └── agent_prompt.py                    # Agent system prompt loader
+│   ├── main.py                                # Entry point + CORS + lifespan
+│   ├── .env                                   # API keys (gitignored)
 │   └── requirements.txt
 ├── frontend/
-│   ├── index.html                         # UI structure
-│   ├── style.css                          # Dark theme styles
-│   └── script.js                          # API calls and plan rendering
+│   ├── index.html                             # UI structure
+│   ├── style.css                              # Dark theme styles
+│   └── script.js                             # API calls and plan/ticket rendering
 ├── docs/
-│   ├── agent.md                           # Agent documentation
-│   ├── skill.md                           # Skill workflow documentation
-│   └── mcp_tools.md                       # MCP tools documentation
+│   ├── agent.md                               # Agent documentation
+│   ├── skill.md                               # Skill workflow documentation
+│   ├── mcp_tools.md                           # MCP tools documentation
+│   └── backend_flow.md                        # End-to-end request flow
+├── .env.example                               # Environment variable template
 └── README.md
 ```
 
@@ -108,12 +118,13 @@ DevProject_AI/
 
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/plan/generate` | Generate plan from requirement only |
-| POST | `/plan/generate-with-context` | Generate plan with repo, docs, and shell context |
-| POST | `/plan/generate-from-repo` | Generate plan from a repo directory |
-| POST | `/plan/generate-from-docs` | Generate plan from a documentation source |
-| POST | `/plan/generate-from-shell` | Generate plan from shell command output |
-| GET | `/plan/agent-prompt` | Preview the agent system prompt |
+| GET | `/` | Health check (includes DB status) |
+| POST | `/plan/generate-with-context` | Generate plan with optional repo, docs, and shell context |
+| POST | `/plan/generate-tasks` | Generate development tickets from a plan |
+| GET | `/history` | List all saved plans |
+| GET | `/history/{id}` | Load a saved plan with its tickets |
+| POST | `/history/save` | Save a plan and its tickets |
+| DELETE | `/history/{id}` | Delete a saved plan and its tickets |
 
 ---
 
@@ -126,21 +137,25 @@ cd DevProject_AI
 
 # 2. Create and activate virtual environment
 python -m venv venv
-venv\Scripts\activate  # Windows
+venv\Scripts\activate   # Windows
 source venv/bin/activate  # Mac/Linux
 
 # 3. Install dependencies
 cd backend
 pip install -r requirements.txt
 
-# 4. Add your API key
-echo ANTHROPIC_API_KEY=your_key_here > .env
+# 4. Configure environment variables
+cp ../.env.example .env
+# Edit .env and set ANTHROPIC_API_KEY and DATABASE_URL
 
-# 5. Start the backend
+# 5. Create the PostgreSQL database
+# psql -U postgres -c "CREATE DATABASE devproject_ai;"
+
+# 6. Start the backend
 uvicorn main:app --reload
 
-# 6. Open the frontend
-# Double-click frontend/index.html in your browser
+# 7. Open the frontend
+# Open frontend/index.html directly in your browser (no build step needed)
 ```
 
 ---
@@ -149,6 +164,8 @@ uvicorn main:app --reload
 - [`docs/agent.md`](docs/agent.md) — agent purpose, sample inputs and outputs
 - [`docs/skill.md`](docs/skill.md) — 9-step planning workflow
 - [`docs/mcp_tools.md`](docs/mcp_tools.md) — MCP tools with sample inputs and outputs
+- [`docs/backend_flow.md`](docs/backend_flow.md) — end-to-end request flow
 - [`.claude/skills/SKILL.md`](.claude/skills/SKILL.md) — full agent workflow
-- [`.claude/agents/ENGINEERING_PLANNING_AGENT.md`](.claude/agents/ENGINEERING_PLANNING_AGENT.md) — agent role definition
+- [`.claude/agents/ENGINEERING_PLANNING_AGENT.md`](.claude/agents/ENGINEERING_PLANNING_AGENT.md) — planner agent role definition
+- [`.claude/agents/TASK_GENERATOR_AGENT.md`](.claude/agents/TASK_GENERATOR_AGENT.md) — task generator agent role definition
 - [`backend/app/agent_prompt.py`](backend/app/agent_prompt.py) — agent system prompt used in code

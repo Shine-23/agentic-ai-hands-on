@@ -1,17 +1,19 @@
-# Pydantic models for all API request and response shapes.
-# Includes MCPContext (context passed to Claude), all request models, and PlanResponse.
+# Pydantic models for the plan API.
+# MCPContext — context item passed to Claude (repo file, doc, shell output, URL)
+# ContextualPlanRequest — the main plan generation request (requirement + optional context)
+# PlanResponse — structured plan returned by the agent
+
+from enum import Enum
+from typing import List, Optional
 
 from pydantic import BaseModel
-from typing import List, Optional
-from enum import Enum
 
 
 class MCPSourceType(str, Enum):
-    repo = "repo"
-    docs = "docs"
-    tool = "tool"
-    url = "url"
-    file = "file"
+    repo = "repo"   # file from a local or cloned repo
+    docs = "docs"   # local doc file
+    url  = "url"    # fetched from a URL
+    tool = "tool"   # output of a shell command
 
 
 class MCPContext(BaseModel):
@@ -20,32 +22,12 @@ class MCPContext(BaseModel):
     content: str
 
 
-class PlanRequest(BaseModel):
-    requirement: str
-
-
 class ContextualPlanRequest(BaseModel):
     requirement: str
     directory: Optional[str] = None
     sources: Optional[List[str]] = None
     commands: Optional[List[str]] = None
     mcp_context: Optional[List[MCPContext]] = None
-    output_style: Optional[str] = "detailed"
-
-
-class RepoPlanRequest(BaseModel):
-    requirement: str
-    directory: str
-
-
-class DocsPlanRequest(BaseModel):
-    requirement: str
-    source: str
-
-
-class ShellPlanRequest(BaseModel):
-    requirement: str
-    command: str
 
 
 class PlanResponse(BaseModel):

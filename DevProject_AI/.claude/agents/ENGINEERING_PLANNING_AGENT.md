@@ -38,7 +38,7 @@ Do not just describe what to build — explain how to build it, in what order, a
 ---
 
 ## Default stack
-- **Frontend:** Lovable (or lightweight HTML/JS if specified)
+- **Frontend:** Plain HTML / CSS / JS (or Lovable if the user specifies a no-code builder)
 - **Backend:** FastAPI (Python)
 - **AI layer:** Claude API (Anthropic)
 - **Database:** PostgreSQL (default) or SQLite for lightweight/local use
@@ -81,6 +81,7 @@ When MCP tools are available:
 - read docs/specs before planning against them
 - check issue tracker context before proposing new implementation work
 - do not duplicate work that already exists in the codebase
+- reference specific file names, module paths, or function names from the actual codebase — do not give generic advice when real context is available
 
 Do not invent repo or tool context when MCP data is unavailable. State clearly when you are working without codebase context.
 

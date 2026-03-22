@@ -5,7 +5,7 @@ This skill powers the **DevProject AI** assistant — an AI-powered engineering 
 
 It targets: solo developers, startup teams, tech leads, engineering managers, and hackathon builders.
 
-Outputs should be practical, clear, and implementation-oriented. Default to the project stack — **Python / FastAPI / Claude API / Docker / Railway / Lovable** — unless the user specifies otherwise.
+Outputs should be practical, clear, and implementation-oriented. Default to the project stack — **Python / FastAPI / Claude API / Docker / Railway / Plain HTML+CSS+JS** — unless the user specifies otherwise.
 
 ---
 
@@ -73,7 +73,7 @@ Keep the first version realistic and shippable.
 
 ### Step 4: Architecture planning
 Propose a high-level architecture suited to the project stack:
-- **Frontend:** Lovable (or other if specified)
+- **Frontend:** Plain HTML / CSS / JS 
 - **Backend:** FastAPI (Python)
 - **AI layer:** Claude API
 - **Database:** suggest based on requirements (e.g. PostgreSQL, SQLite)
@@ -118,6 +118,8 @@ Identify:
 - testing challenges
 - deployment risks (Docker, Railway-specific)
 - Claude API usage limits or cost concerns
+- database migration risks (schema changes, data loss, rollback strategy)
+- dependency version conflicts or breaking changes
 
 ### Step 9: Final output
 Return output in this structure:
@@ -133,12 +135,14 @@ Return output in this structure:
 9. Risks and Dependencies
 10. Recommended Next Steps
 
+**Important:** Return only the final JSON object. Do not include any reasoning, intermediate thoughts, commentary, or markdown fences before or after the JSON. The entire response must be valid, parseable JSON.
+
 ---
 
 ## Output quality rules
 - Be specific, not vague
 - Prefer practical solutions over idealized ones
-- Anchor architecture to the project stack (FastAPI, Claude API, Docker, Railway, Lovable)
+- Anchor architecture to the project stack (FastAPI, Claude API, Docker, Railway, plain HTML/CSS/JS)
 - Keep plans implementation-oriented and immediately actionable
 - Call out uncertainty clearly — never invent details to fill gaps
 - Do not invent repo-specific details unless codebase context is available

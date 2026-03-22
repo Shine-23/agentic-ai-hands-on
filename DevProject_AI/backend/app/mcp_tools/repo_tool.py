@@ -11,8 +11,15 @@ from typing import List, Optional
 from app.schemas.plan import MCPContext, MCPSourceType
 
 DEFAULT_EXTENSIONS = {".py", ".md", ".txt", ".json", ".yaml", ".yml", ".toml"}
-MAX_FILE_SIZE_BYTES = 10_000  # skip files larger than 10 KB
+MAX_FILE_SIZE_BYTES = 10_000   # skip files larger than 10 KB
 CLONE_TIMEOUT_SECONDS = 60
+
+# Directories that are never useful as planning context
+SKIP_DIRS = {
+    ".git", ".github", ".venv", "venv", "env",
+    "node_modules", "__pycache__", ".mypy_cache", ".pytest_cache",
+    "dist", "build", ".eggs", "*.egg-info",
+}
 
 
 def _is_github_url(directory: str) -> bool:
@@ -37,34 +44,47 @@ def _parse_github_url(url: str) -> tuple[str, str]:
 
 
 def _clone_github_repo(clone_url: str) -> Path:
-    tmp = tempfile.mkdtemp(prefix="devproject_repo_")
+    # Use a parent temp dir and let git create the 'repo' subdirectory itself.
+    # Cloning into a pre-existing directory can fail on some git/Windows versions.
+    tmp_parent = tempfile.mkdtemp(prefix="devproject_repo_")
+    clone_target = Path(tmp_parent) / "repo"
     try:
         result = subprocess.run(
-            ["git", "clone", "--depth=1", clone_url, tmp],
+            ["git", "clone", "--depth=1", clone_url, str(clone_target)],
             capture_output=True,
             text=True,
             timeout=CLONE_TIMEOUT_SECONDS,
         )
         if result.returncode != 0:
-            shutil.rmtree(tmp, ignore_errors=True)
+            shutil.rmtree(tmp_parent, ignore_errors=True)
             raise ValueError(f"git clone failed: {result.stderr.strip()}")
     except subprocess.TimeoutExpired:
-        shutil.rmtree(tmp, ignore_errors=True)
+        shutil.rmtree(tmp_parent, ignore_errors=True)
         raise ValueError(f"git clone timed out after {CLONE_TIMEOUT_SECONDS}s: '{clone_url}'")
     except FileNotFoundError:
-        shutil.rmtree(tmp, ignore_errors=True)
+        shutil.rmtree(tmp_parent, ignore_errors=True)
         raise ValueError("git is not installed or not on PATH")
-    return Path(tmp)
+    return clone_target
 
 
 def _scan_directory(root: Path, extensions: Optional[List[str]], max_files: int) -> List[MCPContext]:
     allowed = set(extensions) if extensions else DEFAULT_EXTENSIONS
     contexts = []
 
-    for path in sorted(root.rglob("*")):
+    # Walk the generator directly — avoid materialising the full file list for large repos
+    for path in root.rglob("*"):
         if len(contexts) >= max_files:
             break
         if not path.is_file():
+            continue
+
+        # Get path relative to root for skip-dir check
+        try:
+            relative_parts = path.relative_to(root).parts
+        except ValueError:
+            continue
+
+        if any(part in SKIP_DIRS for part in relative_parts):
             continue
         if path.suffix not in allowed:
             continue
@@ -81,8 +101,15 @@ def _scan_directory(root: Path, extensions: Optional[List[str]], max_files: int)
                     content=content,
                 )
             )
-        except Exception:
+        except OSError as e:
+            print(f"Skipping {path}: {e}")
             continue
+
+    if not contexts:
+        raise ValueError(
+            "No readable files found. Check that the directory contains "
+            f"files with extensions: {', '.join(sorted(allowed))}"
+        )
 
     return contexts
 
@@ -94,14 +121,15 @@ def read_repo_context(
 ) -> List[MCPContext]:
     if _is_github_url(directory):
         clone_url, subpath = _parse_github_url(directory)
-        tmp_path = _clone_github_repo(clone_url)
+        clone_path = _clone_github_repo(clone_url)
+        tmp_parent = clone_path.parent  # the temp dir wrapping the clone
         try:
-            scan_root = tmp_path / subpath if subpath else tmp_path
+            scan_root = clone_path / subpath if subpath else clone_path
             if not scan_root.exists() or not scan_root.is_dir():
                 raise ValueError(f"Subpath '{subpath}' not found in cloned repo")
             return _scan_directory(scan_root, extensions, max_files)
         finally:
-            shutil.rmtree(tmp_path, ignore_errors=True)
+            shutil.rmtree(tmp_parent, ignore_errors=True)
 
     root = Path(directory).resolve()
     if not root.exists() or not root.is_dir():

@@ -1,29 +1,20 @@
 # All /plan/* API endpoints.
 # Handles request validation, runs MCP tools, and delegates plan generation to planner_service.
-# Endpoints: /generate, /generate-with-context, /generate-from-repo, /generate-from-docs, /generate-from-shell, /agent-prompt
+# Endpoints: /generate-with-context, /generate-tasks
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
 
-from app.agent_prompt import ENGINEERING_PLANNING_AGENT_PROMPT
-from app.schemas.plan import (
-    ContextualPlanRequest,
-    DocsPlanRequest,
-    PlanRequest,
-    PlanResponse,
-    RepoPlanRequest,
-    ShellPlanRequest,
-)
+from app.schemas.plan import ContextualPlanRequest, PlanResponse
 from app.services.planner_service import generate_plan
+from app.services.task_service import generate_tasks
+from app.schemas.task import TaskResponse
 from app.mcp_tools.repo_tool import read_repo_context
 from app.mcp_tools.docs_tool import fetch_docs_context
 from app.mcp_tools.shell_tool import run_shell_context
 
 router = APIRouter(prefix="/plan", tags=["plan"])
 
-
-class PromptPreviewResponse(BaseModel):
-    agent_prompt: str
+MAX_REQUIREMENT_LENGTH = 4000
 
 
 def _validate_requirement(requirement: str) -> None:
@@ -31,17 +22,18 @@ def _validate_requirement(requirement: str) -> None:
         raise HTTPException(status_code=400, detail="requirement must not be empty.")
     if len(requirement.strip()) < 10:
         raise HTTPException(status_code=400, detail="requirement is too short to generate a useful plan.")
+    if len(requirement.strip()) > MAX_REQUIREMENT_LENGTH:
+        raise HTTPException(status_code=400, detail=f"requirement exceeds {MAX_REQUIREMENT_LENGTH} characters.")
 
 
-@router.get("/agent-prompt", response_model=PromptPreviewResponse)
-def preview_agent_prompt():
-    return {"agent_prompt": ENGINEERING_PLANNING_AGENT_PROMPT}
-
-
-@router.post("/generate", response_model=PlanResponse)
-def create_plan(payload: PlanRequest):
-    _validate_requirement(payload.requirement)
-    return generate_plan(payload.requirement)
+@router.post("/generate-tasks", response_model=TaskResponse)
+def create_tasks(plan: PlanResponse):
+    if not plan.requirement_summary or not plan.implementation_plan:
+        raise HTTPException(status_code=400, detail="Plan must have a requirement summary and implementation plan before generating tasks.")
+    try:
+        return generate_tasks(plan)
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=str(e))
 
 
 @router.post("/generate-with-context", response_model=PlanResponse)
@@ -53,48 +45,21 @@ def create_contextual_plan(payload: ContextualPlanRequest):
         try:
             combined.extend(read_repo_context(payload.directory))
         except ValueError as e:
-            print(f"Repo tool skipped: {e}")
+            raise HTTPException(status_code=400, detail=f"Repo context failed: {e}")
 
     for source in payload.sources or []:
         try:
             combined.append(fetch_docs_context(source))
         except ValueError as e:
-            print(f"Docs tool skipped ({source}): {e}")
+            raise HTTPException(status_code=400, detail=f"Docs context failed ({source}): {e}")
 
     for command in payload.commands or []:
         try:
             combined.append(run_shell_context(command))
         except ValueError as e:
-            print(f"Shell tool skipped ({command}): {e}")
+            raise HTTPException(status_code=400, detail=f"Shell context failed ({command}): {e}")
 
-    return generate_plan(payload.requirement, combined or None)
-
-
-@router.post("/generate-from-repo", response_model=PlanResponse)
-def create_plan_from_repo(payload: RepoPlanRequest):
-    _validate_requirement(payload.requirement)
     try:
-        mcp_context = read_repo_context(payload.directory)
+        return generate_plan(payload.requirement, combined or None)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    return generate_plan(payload.requirement, mcp_context)
-
-
-@router.post("/generate-from-docs", response_model=PlanResponse)
-def create_plan_from_docs(payload: DocsPlanRequest):
-    _validate_requirement(payload.requirement)
-    try:
-        mcp_context = [fetch_docs_context(payload.source)]
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    return generate_plan(payload.requirement, mcp_context)
-
-
-@router.post("/generate-from-shell", response_model=PlanResponse)
-def create_plan_from_shell(payload: ShellPlanRequest):
-    _validate_requirement(payload.requirement)
-    try:
-        mcp_context = [run_shell_context(payload.command)]
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    return generate_plan(payload.requirement, mcp_context)
+        raise HTTPException(status_code=502, detail=str(e))
