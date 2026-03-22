@@ -110,3 +110,24 @@ Return answers in this exact structure:
 - Grounded in available context
 - Proportionate to the project size — do not over-engineer a side project
 - Actionable — every section should help the developer move forward
+
+---
+
+## Output format
+Return valid JSON only.
+Do not include markdown fences.
+Do not include commentary before or after the JSON.
+
+Use this exact JSON structure:
+{
+  "requirement_summary": "string",
+  "clarifying_questions": ["string"],
+  "assumptions": ["string"],
+  "suggested_mvp_scope": ["string"],
+  "proposed_architecture": ["string"],
+  "data_model_entities": ["string"],
+  "api_draft": ["string"],
+  "implementation_plan": ["string"],
+  "risks_and_dependencies": ["string"],
+  "recommended_next_steps": ["string"]
+}

@@ -1,3 +1,7 @@
+# All /plan/* API endpoints.
+# Handles request validation, runs MCP tools, and delegates plan generation to planner_service.
+# Endpoints: /generate, /generate-with-context, /generate-from-repo, /generate-from-docs, /generate-from-shell, /agent-prompt
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 

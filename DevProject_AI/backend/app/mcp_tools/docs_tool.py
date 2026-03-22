@@ -1,3 +1,7 @@
+# MCP tool: Docs context.
+# Fetches content from a URL (strips HTML to plain text) or reads a local file
+# and returns it as an MCPContext object to pass to Claude.
+
 from pathlib import Path
 from urllib.request import urlopen, Request
 from urllib.error import URLError

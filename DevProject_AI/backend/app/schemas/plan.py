@@ -1,3 +1,6 @@
+# Pydantic models for all API request and response shapes.
+# Includes MCPContext (context passed to Claude), all request models, and PlanResponse.
+
 from pydantic import BaseModel
 from typing import List, Optional
 from enum import Enum

@@ -1,3 +1,7 @@
+# MCP tool: Shell context.
+# Runs a shell command and captures its output (e.g. pip list, cat requirements.txt)
+# and returns it as an MCPContext object to pass to Claude.
+
 import subprocess
 
 from app.schemas.plan import MCPContext, MCPSourceType

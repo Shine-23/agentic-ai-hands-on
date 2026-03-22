@@ -1,3 +1,6 @@
+# Core planning logic. Builds the prompt, calls Claude, parses the response.
+# Falls back to a mock response if Claude returns invalid JSON or the API call fails.
+
 from typing import List, Optional
 
 from app.agent_prompt import ENGINEERING_PLANNING_AGENT_PROMPT

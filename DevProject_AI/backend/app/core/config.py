@@ -1,3 +1,6 @@
+# Centralised configuration for the backend.
+# Loads environment variables from backend/.env and exposes ANTHROPIC_API_KEY.
+
 import os
 from pathlib import Path
 from dotenv import load_dotenv

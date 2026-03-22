@@ -1,3 +1,7 @@
+# MCP tool: Repo context.
+# Scans a local directory or clones a public GitHub repo (supports tree/subdir URLs)
+# and returns file contents as MCPContext objects to pass to Claude.
+
 import shutil
 import subprocess
 import tempfile

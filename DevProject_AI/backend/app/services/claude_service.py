@@ -1,3 +1,6 @@
+# Low-level Claude API helpers.
+# Handles client initialisation, extracting text from API responses, and safely parsing JSON output.
+
 import json
 from anthropic import Anthropic
 from app.core.config import ANTHROPIC_API_KEY

@@ -1,3 +1,6 @@
+# Entry point for the DevProject AI backend.
+# Initialises the FastAPI app, configures CORS, and registers the /plan router.
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes_plan import router as plan_router
