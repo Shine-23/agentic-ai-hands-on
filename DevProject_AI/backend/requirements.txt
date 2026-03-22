@@ -1,5 +1,6 @@
 fastapi==0.135.1
 uvicorn[standard]==0.42.0
+aiofiles==25.1.0
 pydantic==2.12.5
 python-dotenv==1.2.2
 anthropic==0.86.0

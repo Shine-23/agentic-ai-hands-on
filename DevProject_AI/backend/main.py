@@ -5,9 +5,11 @@
 # If you add a new column to a model, run ALTER TABLE manually in psql or via a one-off script.
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.api.routes_plan import router as plan_router
@@ -41,7 +43,7 @@ app.include_router(plan_router)
 app.include_router(history_router)
 
 
-@app.get("/")
+@app.get("/health")
 def health_check(response: Response):
     """Health check — verifies the API is running and the database is reachable."""
     db = SessionLocal()
@@ -62,3 +64,11 @@ def health_check(response: Response):
         "api": "DevProject AI backend is running",
         "database": db_status,
     }
+
+
+# Serve the frontend as static files — must be mounted last so API routes take priority.
+# In production (Docker/Railway) the frontend directory sits one level above backend/.
+# Falls back gracefully if the directory is absent (e.g. running tests without the build).
+_frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
+if _frontend_dir.exists():
+    app.mount("/", StaticFiles(directory=_frontend_dir, html=True), name="frontend")

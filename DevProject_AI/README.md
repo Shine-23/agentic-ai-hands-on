@@ -130,6 +130,7 @@ DevProject_AI/
 
 ## Quick Start
 
+### Local development (no Docker)
 ```bash
 # 1. Clone the repo
 git clone https://github.com/Shine-23/agentic-ai-hands-on
@@ -146,10 +147,10 @@ pip install -r requirements.txt
 
 # 4. Configure environment variables
 cp ../.env.example .env
-# Edit .env and set ANTHROPIC_API_KEY and DATABASE_URL
+# Edit .env — set ANTHROPIC_API_KEY and DATABASE_URL
 
 # 5. Create the PostgreSQL database
-# psql -U postgres -c "CREATE DATABASE devproject_ai;"
+psql -U postgres -c "CREATE DATABASE devproject_ai;"
 
 # 6. Start the backend
 uvicorn main:app --reload
@@ -157,6 +158,24 @@ uvicorn main:app --reload
 # 7. Open the frontend
 # Open frontend/index.html directly in your browser (no build step needed)
 ```
+
+### Local development (Docker)
+```bash
+# Copy and fill in your API key
+cp .env.example backend/.env
+# Edit backend/.env — set ANTHROPIC_API_KEY (DATABASE_URL is handled by docker-compose)
+
+docker compose up --build
+# Visit http://localhost:8000
+```
+
+### Deploy to Railway
+1. Push this repo to GitHub
+2. Create a new Railway project → **Deploy from GitHub repo**
+3. Set the **Root Directory** to `DevProject_AI`
+4. Add a **PostgreSQL** plugin — Railway sets `DATABASE_URL` automatically
+5. Add environment variable: `ANTHROPIC_API_KEY=your-key`
+6. Deploy — Railway detects `railway.toml` and uses the Dockerfile automatically
 
 ---
 

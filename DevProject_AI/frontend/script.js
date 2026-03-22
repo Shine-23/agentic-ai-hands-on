@@ -1,4 +1,6 @@
-const API_BASE = "http://localhost:8000";
+// When opened as a local file (file://) talk directly to the dev server.
+// When served from the same origin (Docker / Railway) use relative URLs.
+const API_BASE = window.location.protocol === "file:" ? "http://localhost:8000" : "";
 let allExpanded = false;
 let lastPlan = null;
 let lastTickets = [];
@@ -18,7 +20,7 @@ const SECTIONS = [
 // ── API STATUS CHECK ──
 async function checkApiStatus() {
   try {
-    const res = await fetch(`${API_BASE}/`, { signal: AbortSignal.timeout(3000) });
+    const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
     if (res.ok) {
       document.getElementById("statusDot").className = "status-dot online";
       document.getElementById("statusText").textContent = "API online";

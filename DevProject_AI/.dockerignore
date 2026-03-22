@@ -1,0 +1,30 @@
+# Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.pyd
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets
+.env
+backend/.env
+
+# Git
+.git/
+.gitignore
+
+# Docs and meta (not needed at runtime)
+docs/
+README.md
+.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
