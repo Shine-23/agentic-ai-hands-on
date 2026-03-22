@@ -23,8 +23,22 @@ DevProject_AI/
 │       └── ENGINEERING_PLANNING_AGENT.md  # Agent role and behavior
 ├── backend/
 │   ├── app/
-│   │   └── agent_prompt.py    # Agent system prompt (used in code)
+│   │   ├── core/
+│   │   │   └── config.py          # Centralised env loading (ANTHROPIC_API_KEY)
+│   │   ├── api/
+│   │   │   └── routes_plan.py     # HTTP endpoints
+│   │   ├── schemas/
+│   │   │   └── plan.py            # Pydantic models incl. MCPContext, ContextualPlanRequest
+│   │   ├── services/
+│   │   │   ├── claude_service.py  # Raw Claude API interactions
+│   │   │   └── planner_service.py # Agent workflow logic
+│   │   ├── mcp_tools/
+│   │   │   ├── repo_tool.py       # Reads local repo files into MCPContext
+│   │   │   ├── docs_tool.py       # Fetches URLs or local docs into MCPContext
+│   │   │   └── shell_tool.py      # Runs shell commands into MCPContext
+│   │   └── agent_prompt.py        # Agent system prompt
 │   ├── main.py                # Entry point
+│   ├── .env                   # API keys (gitignored)
 │   └── requirements.txt
 ├── frontend/                  # Lovable frontend
 ├── docs/
@@ -37,6 +51,11 @@ DevProject_AI/
 - [`.claude/agents/ENGINEERING_PLANNING_AGENT.md`](agents/ENGINEERING_PLANNING_AGENT.md) — agent role, boundaries, and behavior
 - [`.claude/skills/SKILL.md`](skills/SKILL.md) — step-by-step workflow the agent follows
 - [`backend/app/agent_prompt.py`](../backend/app/agent_prompt.py) — agent system prompt used in code
+- [`backend/app/schemas/plan.py`](../backend/app/schemas/plan.py) — `MCPContext`, `MCPSourceType`, `PlanRequest`, `ContextualPlanRequest`, `PlanResponse`
+- [`backend/app/api/routes_plan.py`](../backend/app/api/routes_plan.py) — all `/plan/*` endpoints (generate, generate-with-context, generate-from-repo, generate-from-docs, generate-from-shell)
+- [`backend/app/mcp_tools/repo_tool.py`](../backend/app/mcp_tools/repo_tool.py) — `read_repo_context()` walks a local directory
+- [`backend/app/mcp_tools/docs_tool.py`](../backend/app/mcp_tools/docs_tool.py) — `fetch_docs_context()` fetches a URL or local file
+- [`backend/app/mcp_tools/shell_tool.py`](../backend/app/mcp_tools/shell_tool.py) — `run_shell_context()` runs a shell command
 
 ## Python environment
 - Always use the local venv: `venv/Scripts/python` and `venv/Scripts/pip`

@@ -1,13 +1,25 @@
+from typing import List, Optional
+
 from app.agent_prompt import ENGINEERING_PLANNING_AGENT_PROMPT
-from app.schemas.plan import PlanResponse
+from app.schemas.plan import MCPContext, PlanResponse
 from app.services.claude_service import (
-    get_claude_client,
     extract_text_from_response,
+    get_claude_client,
     safe_parse_plan_json,
 )
 
 
-def build_messages(requirement: str) -> dict:
+def build_messages(requirement: str, mcp_context: Optional[List[MCPContext]] = None) -> dict:
+    context_text = ""
+
+    if mcp_context:
+        formatted_context = []
+        for item in mcp_context:
+            formatted_context.append(
+                f"[{item.source_type.value.upper()}] {item.source}\n{item.content}"
+            )
+        context_text = "\n\nAdditional MCP Context:\n" + "\n\n".join(formatted_context)
+
     return {
         "system": ENGINEERING_PLANNING_AGENT_PROMPT,
         "messages": [
@@ -16,15 +28,21 @@ def build_messages(requirement: str) -> dict:
                 "content": (
                     "Create an engineering plan for this product requirement:\n\n"
                     f"{requirement}"
+                    f"{context_text}"
                 ),
             }
         ],
     }
 
 
-def _mock_response(requirement: str) -> PlanResponse:
+def _mock_response(requirement: str, mcp_context: Optional[List[MCPContext]] = None) -> PlanResponse:
+    context_note = ""
+    if mcp_context:
+        sources = ", ".join([f"{item.source} ({item.source_type.value})" for item in mcp_context])
+        context_note = f" Additional context was provided from: {sources}."
+
     return PlanResponse(
-        requirement_summary=f"The user wants to build: {requirement}",
+        requirement_summary=f"The user wants to build: {requirement}.{context_note}",
         clarifying_questions=[
             "Is this intended for a single team or multiple organizations?",
             "Do users need role-based access control?",
@@ -86,8 +104,8 @@ def _mock_response(requirement: str) -> PlanResponse:
     )
 
 
-def generate_plan(requirement: str) -> PlanResponse:
-    payload = build_messages(requirement)
+def generate_plan(requirement: str, mcp_context: Optional[List[MCPContext]] = None) -> PlanResponse:
+    payload = build_messages(requirement, mcp_context)
 
     try:
         client = get_claude_client()
@@ -101,6 +119,10 @@ def generate_plan(requirement: str) -> PlanResponse:
         plan_data = safe_parse_plan_json(text)
         return PlanResponse(**plan_data)
 
+    except ValueError as e:
+        print(f"JSON parse error — Claude returned invalid JSON: {e}")
+        return _mock_response(requirement, mcp_context)
+
     except Exception as e:
         print(f"Claude API error: {e}")
-        return _mock_response(requirement)
+        return _mock_response(requirement, mcp_context)
