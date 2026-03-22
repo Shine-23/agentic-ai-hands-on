@@ -6,7 +6,7 @@ AI-powered engineering planning assistant that converts rough product requiremen
 ## Tech stack
 - **Backend:** FastAPI (Python)
 - **AI layer:** Claude API (Anthropic)
-- **Frontend:** Lovable
+- **Frontend:** HTML / CSS / JS (index.html, style.css, script.js)
 - **Database:** PostgreSQL (default) or SQLite
 - **Auth:** JWT (default) or OAuth2
 - **Deployment:** Docker + Railway
@@ -40,9 +40,14 @@ DevProject_AI/
 │   ├── main.py                # Entry point
 │   ├── .env                   # API keys (gitignored)
 │   └── requirements.txt
-├── frontend/                  # Lovable frontend
+├── frontend/
+│   ├── index.html             # HTML structure
+│   ├── style.css              # All styles (dark theme, sticky header)
+│   └── script.js              # API calls, plan rendering, UI interactions
 ├── docs/
-│   └── NOTES.md
+│   ├── agent.md               # Agent purpose, sample i/o, working style
+│   ├── skill.md               # Skill workflow, 9 steps, sample i/o
+│   └── mcp_tools.md           # MCP tools purpose, sample i/o for all 3 tools
 ├── venv/                      # Python virtual environment (do not edit)
 └── README.md
 ```
@@ -53,9 +58,15 @@ DevProject_AI/
 - [`backend/app/agent_prompt.py`](../backend/app/agent_prompt.py) — agent system prompt used in code
 - [`backend/app/schemas/plan.py`](../backend/app/schemas/plan.py) — `MCPContext`, `MCPSourceType`, `PlanRequest`, `ContextualPlanRequest`, `PlanResponse`
 - [`backend/app/api/routes_plan.py`](../backend/app/api/routes_plan.py) — all `/plan/*` endpoints (generate, generate-with-context, generate-from-repo, generate-from-docs, generate-from-shell)
-- [`backend/app/mcp_tools/repo_tool.py`](../backend/app/mcp_tools/repo_tool.py) — `read_repo_context()` walks a local directory
+- [`backend/app/mcp_tools/repo_tool.py`](../backend/app/mcp_tools/repo_tool.py) — `read_repo_context()` scans local dir or clones GitHub URL (supports tree/subdir URLs)
 - [`backend/app/mcp_tools/docs_tool.py`](../backend/app/mcp_tools/docs_tool.py) — `fetch_docs_context()` fetches a URL or local file
 - [`backend/app/mcp_tools/shell_tool.py`](../backend/app/mcp_tools/shell_tool.py) — `run_shell_context()` runs a shell command
+- [`frontend/index.html`](../frontend/index.html) — UI structure
+- [`frontend/style.css`](../frontend/style.css) — UI styles
+- [`frontend/script.js`](../frontend/script.js) — UI logic, API calls, plan rendering
+- [`docs/agent.md`](../docs/agent.md) — agent documentation
+- [`docs/skill.md`](../docs/skill.md) — skill workflow documentation
+- [`docs/mcp_tools.md`](../docs/mcp_tools.md) — MCP tools documentation
 
 ## Python environment
 - Always use the local venv: `venv/Scripts/python` and `venv/Scripts/pip`
